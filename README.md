@@ -13,4 +13,4 @@ Open `http://localhost:4173`.
 ## Deployment
 
 Pushes to `main` deploy to GitHub Pages through `.github/workflows/pages.yml`.
-The production URL is `https://flowmux-ai.github.io/flowmux.github.io/` until a custom domain is configured.
+The production URL is `https://flowmux-ai.github.io/` until a custom domain is configured.
