@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#0d1117">
+
+    <title>Flowmux — Terminal for AI coding agents</title>
+    <meta
+      name="description"
+      content="Flowmux keeps AI coding agents, terminals, and browsers in one workspace."
+    >
+    <link rel="canonical" href="https://flowmux-ai.github.io/">
+    <link rel="icon" href="assets/flowmux.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="assets/flowmux-180.png">
+
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Flowmux">
+    <meta property="og:title" content="Flowmux — Terminal for AI coding agents">
+    <meta
+      property="og:description"
+      content="Keep AI coding agents, terminals, and browsers in one workspace."
+    >
+    <meta property="og:url" content="https://flowmux-ai.github.io/">
+
+    <link rel="stylesheet" href="styles.css">
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "Flowmux",
+        "url": "https://flowmux-ai.github.io/"
+      }
+    </script>
+  </head>
+
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+
+    <div class="site-shell">
+      <header class="site-header">
+        <a class="brand" href="#top" aria-label="Flowmux home">
+          <img src="assets/flowmux.svg" alt="" width="36" height="36">
+          <span>Flowmux</span>
+        </a>
+
+        <nav aria-label="Primary navigation">
+          <a href="#features">Features</a>
+          <a href="https://github.com/flowmux-ai/flowmux-terminal">GitHub</a>
+        </nav>
+      </header>
+
+      <main id="main">
+        <section class="hero" id="top">
+          <div class="hero-copy">
+            <img class="hero-icon" src="assets/flowmux.svg" alt="" width="96" height="96">
+            <h1>Flowmux</h1>
+            <p class="hero-product-type">terminal</p>
+            <p class="hero-tagline">Terminal workspace for AI coding agents.</p>
+            <p class="hero-lede">
+              Run Claude Code, Codex, and OpenCode with terminal and browser panes.
+            </p>
+
+            <div class="hero-actions">
+              <a class="button button-primary" href="https://github.com/flowmux-ai/flowmux-terminal">
+                GitHub
+                <span aria-hidden="true">↗</span>
+              </a>
+              <a class="button button-secondary" href="https://github.com/flowmux-ai/flowmux-terminal/releases/latest">
+                Latest release
+              </a>
+            </div>
+
+            <p class="hero-note">Open source · Native · GPL-3.0</p>
+          </div>
+
+          <div class="hero-stage">
+            <figure class="app-window">
+              <img
+                src="assets/flowmux-workspace.png"
+                alt="Flowmux workspace with Claude Code, Codex, OpenCode, and a browser arranged in split panes"
+                width="1426"
+                height="926"
+                fetchpriority="high"
+              >
+            </figure>
+          </div>
+        </section>
+
+        <section class="section-heading" id="features">
+          <p class="section-kicker"><span>features</span></p>
+          <h2>Features</h2>
+          <p>Terminal, browser, file preview, and agent status tools.</p>
+        </section>
+
+        <section class="feature-list" aria-label="Flowmux features">
+          <article class="feature">
+            <div class="feature-copy">
+              <p class="feature-index">agent notifications</p>
+              <h3>Agent notifications</h3>
+              <p>Shows agent status and opens the workspace that sent the notification.</p>
+              <code>working → attention → done</code>
+            </div>
+
+            <figure class="demo-window">
+              <picture>
+                <source media="(prefers-reduced-motion: reduce)" srcset="assets/agent-notifications.png">
+                <img
+                  src="assets/agent-notifications.gif"
+                  alt="Flowmux routing an AI agent notification to the correct workspace"
+                  width="800"
+                  height="490"
+                  loading="lazy"
+                >
+              </picture>
+            </figure>
+          </article>
+
+          <article class="feature">
+            <div class="feature-copy">
+              <p class="feature-index">browser control</p>
+              <h3>In-app browser</h3>
+              <p>Agents can open, inspect, and control browser pages through the Flowmux CLI.</p>
+              <code>flowmux browser snapshot</code>
+            </div>
+
+            <figure class="demo-window">
+              <picture>
+                <source media="(prefers-reduced-motion: reduce)" srcset="assets/browser-control.png">
+                <img
+                  src="assets/browser-control.gif"
+                  alt="An AI agent controlling a browser tab inside Flowmux"
+                  width="797"
+                  height="490"
+                  loading="lazy"
+                >
+              </picture>
+            </figure>
+          </article>
+
+          <article class="feature">
+            <div class="feature-copy">
+              <p class="feature-index">workspace layout</p>
+              <h3>Panes and tabs</h3>
+              <p>Split the workspace and arrange terminal and browser tabs in each pane.</p>
+              <code>pane + tab + workspace</code>
+            </div>
+
+            <figure class="demo-window">
+              <picture>
+                <source media="(prefers-reduced-motion: reduce)" srcset="assets/split-panes.png">
+                <img
+                  src="assets/split-panes.gif"
+                  alt="Flowmux splitting and resizing terminal and browser panes"
+                  width="640"
+                  height="453"
+                  loading="lazy"
+                >
+              </picture>
+            </figure>
+          </article>
+
+          <article class="feature feature-previews">
+            <div class="feature-copy">
+              <p class="feature-index">file previews</p>
+              <h3>File previews</h3>
+              <p>Opens images, SVG, Lottie, and Markdown files in a pane.</p>
+              <code>image + animation + markdown</code>
+            </div>
+
+            <div class="preview-grid">
+              <figure class="demo-window">
+                <picture>
+                  <source media="(prefers-reduced-motion: reduce)" srcset="assets/image-viewer.png">
+                  <img
+                    src="assets/image-viewer.gif"
+                    alt="Flowmux previewing image and animation files in a pane"
+                    width="640"
+                    height="459"
+                    loading="lazy"
+                  >
+                </picture>
+              </figure>
+
+              <figure class="demo-window">
+                <picture>
+                  <source media="(prefers-reduced-motion: reduce)" srcset="assets/markdown-viewer.png">
+                  <img
+                    src="assets/markdown-viewer.gif"
+                    alt="Flowmux rendering a Markdown file in a pane"
+                    width="640"
+                    height="483"
+                    loading="lazy"
+                  >
+                </picture>
+              </figure>
+            </div>
+          </article>
+        </section>
+
+        <section class="feature-grid-section" aria-labelledby="daily-features">
+          <div class="feature-grid-heading">
+            <p class="section-kicker"><span>workspace</span></p>
+            <h2 id="daily-features">Workspace tools</h2>
+            <p>Git, session recovery, navigation, and browser state.</p>
+          </div>
+
+          <div class="feature-grid">
+            <article>
+              <span>git</span>
+              <h3>Worktree panel</h3>
+              <p>Lists, opens, inspects, and removes Git worktrees.</p>
+            </article>
+            <article>
+              <span>resume</span>
+              <h3>Session restore</h3>
+              <p>Restores layouts, terminal scrollback, tabs, and browser sessions.</p>
+            </article>
+            <article>
+              <span>agents</span>
+              <h3>Agent Bar</h3>
+              <p>Shows active agents and provides pane focus and stop controls.</p>
+            </article>
+            <article>
+              <span>usage</span>
+              <h3>Claude usage</h3>
+              <p>Shows Claude account usage limits.</p>
+            </article>
+            <article>
+              <span>browser</span>
+              <h3>Browser state</h3>
+              <p>Stores browser history, permissions, and downloads.</p>
+            </article>
+            <article>
+              <span>navigate</span>
+              <h3>Quick open</h3>
+              <p>Opens workspaces, panes, tabs, commands, and files.</p>
+            </article>
+          </div>
+        </section>
+
+      </main>
+
+      <footer>
+        <a class="brand" href="#top">
+          <img src="assets/flowmux.svg" alt="" width="30" height="30">
+          <span>Flowmux</span>
+        </a>
+        <p>Agent Workflow Multiplexer Terminal</p>
+        <p>GPL-3.0-or-later</p>
+      </footer>
+    </div>
+  </body>
+</html>
