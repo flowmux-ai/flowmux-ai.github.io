@@ -223,7 +223,7 @@ h1 {
 }
 
 .hero-stage {
-  width: 100%;
+  width: min(850px, 100%);
 }
 
 .app-window,
@@ -235,8 +235,13 @@ h1 {
   background: #080c11;
 }
 
-.app-window > img {
+.app-window picture,
+.app-window img {
+  display: block;
   width: 100%;
+}
+
+.app-window img {
   height: auto;
   object-fit: contain;
 }
