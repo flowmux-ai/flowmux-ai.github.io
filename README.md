@@ -1,6 +1,6 @@
-# Flowmux website
+# flowmux website
 
-Static landing page for [Flowmux](https://github.com/flowmux-ai/flowmux-terminal).
+Static landing page for [flowmux](https://github.com/flowmux-ai/flowmux).
 
 ## Local preview
 
@@ -13,4 +13,4 @@ Open `http://localhost:4173`.
 ## Deployment
 
 Pushes to `main` deploy to GitHub Pages through `.github/workflows/pages.yml`.
-The production URL is `https://flowmux-ai.github.io/` until a custom domain is configured.
+The production URL is `https://flowmux.org/`.
