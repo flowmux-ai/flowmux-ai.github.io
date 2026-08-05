@@ -235,15 +235,44 @@ h1 {
   background: #080c11;
 }
 
-.app-window picture,
-.app-window img {
+.app-window img,
+.app-window video,
+.demo-window img,
+.demo-window video {
   display: block;
   width: 100%;
-}
-
-.app-window img {
   height: auto;
   object-fit: contain;
+}
+
+.demo-play {
+  position: relative;
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--mist);
+  cursor: pointer;
+  font-family: var(--mono);
+}
+
+.demo-play span {
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  padding: 8px 12px;
+  border: 1px solid #566272;
+  border-radius: 6px;
+  background: rgba(13, 17, 23, 0.92);
+  font-size: 11px;
+  font-weight: 650;
+  transition: border-color 150ms ease, background-color 150ms ease;
+}
+
+.demo-play:hover span {
+  border-color: var(--cyan);
+  background: rgba(17, 23, 32, 0.96);
 }
 
 .section-heading {
@@ -337,17 +366,6 @@ h1 {
   color: #b9c3cd;
   font-family: var(--mono);
   font-size: 11px;
-}
-
-.demo-window picture,
-.demo-window img {
-  display: block;
-  width: 100%;
-}
-
-.demo-window img {
-  height: auto;
-  object-fit: contain;
 }
 
 .feature-previews {
