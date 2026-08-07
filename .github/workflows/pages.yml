@@ -25,10 +25,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
+      - name: Test installer
+        run: ./test-install.sh
+
       - name: Prepare static site
         run: |
           mkdir _site
-          cp index.html styles.css robots.txt sitemap.xml google8ef6ae6d5003d1da.html _site/
+          cp index.html install.sh styles.css robots.txt sitemap.xml google8ef6ae6d5003d1da.html _site/
           cp -R assets _site/
 
       - name: Configure Pages
