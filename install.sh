@@ -50,6 +50,8 @@ echo "==> Downloading flowmux ${version}"
 curl -fsSL "${release_url}/${package}" -o "${temporary_directory}/${package}"
 curl -fsSL "${release_url}/${package}.sha256" -o "${temporary_directory}/${package}.sha256"
 (cd "$temporary_directory" && sha256sum -c "${package}.sha256")
+chmod 755 "$temporary_directory"
+chmod 644 "${temporary_directory}/${package}"
 
 if [ "$(id -u)" -ne 0 ] && ! command -v sudo >/dev/null 2>&1; then
     die "sudo is required to install flowmux"
