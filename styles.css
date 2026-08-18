@@ -215,11 +215,13 @@ h1 {
 }
 
 .install-command {
+  display: flex;
+  align-items: center;
   width: fit-content;
   max-width: 100%;
-  overflow-x: auto;
+  overflow: hidden;
   margin: 24px auto 0;
-  padding: 12px 16px;
+  padding: 4px 4px 4px 16px;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: #080c11;
@@ -230,7 +232,25 @@ h1 {
 }
 
 .install-command code {
+  min-width: 0;
+  overflow-x: auto;
+  padding-right: 16px;
   white-space: nowrap;
+}
+
+.install-command button {
+  flex: none;
+  padding: 7px 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--ink);
+  color: var(--mist);
+  cursor: pointer;
+  font: inherit;
+}
+
+.install-command button:hover {
+  border-color: var(--cyan);
 }
 
 .install-note {
