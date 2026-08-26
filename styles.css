@@ -140,7 +140,7 @@ h1 {
   font-size: clamp(84px, 11vw, 140px);
   font-weight: 680;
   line-height: 0.88;
-  letter-spacing: -0.045em;
+  letter-spacing: 0.1em;
 }
 
 .hero-product-type {
