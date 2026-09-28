@@ -115,18 +115,19 @@
               <button
                 class="demo-play"
                 type="button"
-                data-video="assets/flowmux-workspace.mp4"
-                aria-label="Play the flowmux workspace demo"
+                data-video="assets/flowmux-intro.mp4"
+                data-intro
+                aria-label="Watch the flowmux intro video"
               >
                 <img
-                  src="assets/flowmux-workspace.webp"
+                  src="assets/flowmux-intro.webp"
                   alt=""
-                  width="850"
-                  height="507"
+                  width="1280"
+                  height="720"
                   fetchpriority="high"
                   decoding="async"
                 >
-                <span aria-hidden="true">Play demo</span>
+                <span aria-hidden="true">Watch intro · 1:26</span>
               </button>
             </figure>
           </div>
@@ -427,6 +428,7 @@
         button.addEventListener("click", () => {
           const image = button.querySelector("img");
           const video = document.createElement("video");
+          const isIntro = button.hasAttribute("data-intro");
 
           video.src = button.dataset.video;
           video.poster = image.currentSrc;
@@ -435,8 +437,8 @@
           video.preload = "none";
           video.controls = true;
           video.autoplay = true;
-          video.loop = true;
-          video.muted = true;
+          video.loop = !isIntro;
+          video.muted = !isIntro;
           video.playsInline = true;
           video.setAttribute("aria-label", button.getAttribute("aria-label"));
 
