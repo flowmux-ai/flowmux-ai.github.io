@@ -465,6 +465,11 @@ h1 {
   align-items: start;
 }
 
+.preview-grid img,
+.preview-grid video {
+  aspect-ratio: 1200 / 816;
+}
+
 .feature-grid-section {
   padding: 128px 0;
   border-bottom: 1px solid var(--line);
