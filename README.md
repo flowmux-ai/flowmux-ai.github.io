@@ -32,6 +32,22 @@ gh api repos/flowmux-ai/flowmux/releases --paginate \
   --jq '.[] | .tag_name as $tag | .assets[] | select(.name | endswith("_amd64.deb")) | [$tag, .name, .download_count] | @tsv'
 ```
 
+## Install count
+
+The homepage's “Install to date” counter sums program asset downloads across
+all GitHub Releases, excluding checksums and images. It fetches the public
+GitHub API on page load and every five minutes while the page is visible.
+Updates and repeat downloads count; unique users and install success are not
+measured. Each deployment embeds a fresh count using the authenticated GitHub
+API. If the browser API fails or rate-limits the visitor, that snapshot or the
+last successfully loaded count stays visible.
+
+Check pagination, asset filtering, and failure handling with:
+
+```sh
+node test-install-count.mjs
+```
+
 ## Deployment
 
 Pushes to `main` deploy to GitHub Pages through `.github/workflows/pages.yml`.

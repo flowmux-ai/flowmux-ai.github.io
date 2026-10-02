@@ -28,11 +28,33 @@ jobs:
       - name: Test installer
         run: ./test-install.sh
 
+      - name: Test install count
+        run: node test-install-count.mjs
+
       - name: Prepare static site
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           mkdir _site
           cp index.html install.sh styles.css robots.txt sitemap.xml google8ef6ae6d5003d1da.html _site/
           cp -R assets _site/
+          gh api 'repos/flowmux-ai/flowmux/releases?per_page=100' --paginate --jq '.[] | .assets[] | @json' > "$RUNNER_TEMP/flowmux-assets.jsonl"
+          python3 - <<'PY'
+          import json, os, re
+          from pathlib import Path
+
+          assets = [json.loads(line) for line in (Path(os.environ['RUNNER_TEMP']) / 'flowmux-assets.jsonl').read_text().splitlines()]
+          total = sum(
+              asset['download_count']
+              for asset in assets
+              if re.search(r'\.(?:deb|rpm|dmg|pkg|msi|exe|AppImage|zip|tar\.(?:gz|xz|zst))$', asset['name'], re.I)
+          )
+          path = Path('_site/index.html')
+          html, changed = re.subn(r'(<strong id="install-count"[^>]*>)[^<]*', lambda m: m[1] + f'{total:,}', path.read_text())
+          assert changed == 1, 'Install counter must appear exactly once'
+          path.write_text(html)
+          print(f'Install count snapshot: {total:,}')
+          PY
 
       - name: Configure Pages
         uses: actions/configure-pages@v5

@@ -110,10 +110,10 @@ nav a:hover {
 
 .hero {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr);
   gap: 76px;
   justify-items: center;
-  padding: 104px 0 112px;
+  padding: 104px 0 32px;
   text-align: center;
 }
 
@@ -270,6 +270,40 @@ h1 {
 
 .hero-stage {
   width: min(850px, 100%);
+}
+
+.install-divider {
+  margin: 40px 0 0;
+  border: 0;
+  border-top: 1px solid var(--line);
+}
+
+.install-stat {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  width: fit-content;
+  margin: 32px auto 0;
+  padding: 0 0 0 20px;
+  border-left: 2px solid var(--cyan);
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 13px;
+  scroll-margin-top: 40px;
+}
+
+.install-stat strong {
+  color: var(--mist);
+  font-family: var(--sans);
+  font-size: clamp(32px, 5vw, 42px);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.15;
+  letter-spacing: -0.05em;
+}
+
+.install-stat:hover strong {
+  color: var(--cyan);
 }
 
 .app-window,
@@ -579,7 +613,7 @@ footer .brand {
 
   .hero {
     gap: 54px;
-    padding: 64px 0 84px;
+    padding: 64px 0 32px;
   }
 
   h1 {
