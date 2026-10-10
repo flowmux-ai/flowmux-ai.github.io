@@ -315,8 +315,14 @@ h1 {
   background: #080c11;
 }
 
-.app-window img,
-.app-window video,
+.app-window iframe {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 9;
+  border: 0;
+}
+
 .demo-window img,
 .demo-window video {
   display: block;

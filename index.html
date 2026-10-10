@@ -112,23 +112,15 @@
 
           <div class="hero-stage">
             <figure class="app-window">
-              <button
-                class="demo-play"
-                type="button"
-                data-video="assets/flowmux-intro.mp4"
-                data-intro
-                aria-label="Watch the flowmux intro video"
-              >
-                <img
-                  src="assets/flowmux-intro.webp"
-                  alt=""
-                  width="1280"
-                  height="720"
-                  fetchpriority="high"
-                  decoding="async"
-                >
-                <span aria-hidden="true">Watch intro · 1:42</span>
-              </button>
+              <iframe
+                src="https://www.youtube.com/embed/9o_WNinRjGY"
+                title="flowmux intro video"
+                width="1280"
+                height="720"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                referrerpolicy="strict-origin-when-cross-origin"
+                allowfullscreen
+              ></iframe>
             </figure>
             <hr class="install-divider">
             <a
@@ -519,7 +511,6 @@
         button.addEventListener("click", () => {
           const image = button.querySelector("img");
           const video = document.createElement("video");
-          const isIntro = button.hasAttribute("data-intro");
 
           video.src = button.dataset.video;
           video.poster = image.currentSrc;
@@ -528,8 +519,8 @@
           video.preload = "none";
           video.controls = true;
           video.autoplay = true;
-          video.loop = !isIntro;
-          video.muted = !isIntro;
+          video.loop = true;
+          video.muted = true;
           video.playsInline = true;
           video.setAttribute("aria-label", button.getAttribute("aria-label"));
 
