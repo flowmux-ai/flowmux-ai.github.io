@@ -34,18 +34,21 @@ gh api repos/flowmux-ai/flowmux/releases --paginate \
 
 ## Install count
 
-The homepage's “Install to date” counter sums program asset downloads across
-all GitHub Releases, excluding checksums and images. It fetches the public
-GitHub API on page load and every five minutes while the page is visible.
-Updates and repeat downloads count; unique users and install success are not
-measured. Each deployment embeds a fresh count using the authenticated GitHub
-API. If the browser API fails or rate-limits the visitor, that snapshot or the
-last successfully loaded count stays visible.
+The homepage's “Downloads to date” counter sums program asset downloads across
+all GitHub Releases, excluding checksums and images. Updates and repeat downloads
+count; unique users and install success are not measured.
 
-Check pagination, asset filtering, and failure handling with:
+GitHub Actions collects all pages using the authenticated API and embeds the count
+and actual collection time in the deployed HTML. The daily schedule is 08:00 KST
+(23:00 UTC); pushes and manual deployments also refresh the snapshot. Scheduled
+runs can be delayed, so “Last counted” shows the actual time in KST. Browsers do
+not call the GitHub API. A failed API request or invalid count stops deployment,
+leaving the previous published count and timestamp available.
+
+Check asset filtering, KST timestamps, and failure handling with:
 
 ```sh
-node test-install-count.mjs
+python3 test-install-count.py
 ```
 
 ## Deployment

@@ -306,6 +306,14 @@ h1 {
   color: var(--cyan);
 }
 
+.install-updated {
+  margin: 12px 0 0;
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 11px;
+  text-align: center;
+}
+
 .app-window,
 .demo-window {
   overflow: hidden;
