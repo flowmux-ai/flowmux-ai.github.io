@@ -55,6 +55,12 @@ if [ "${FLOWMUX_INSTALL_MOCK:-}" = 1 ]; then
             esac
             ;;
         apt-get)
+            # apt lists missing dependencies and asks before installing them.
+            if [ "$1" = install ]; then
+                printf 'Install dependencies? [Y/n] '
+                read -r answer
+                case "$answer" in ""|y|Y|yes|YES) ;; *) exit 1 ;; esac
+            fi
             printf 'apt-get' >> "$TEST_LOG"
             printf ' %s' "$@" >> "$TEST_LOG"
             printf '\n' >> "$TEST_LOG"
@@ -64,7 +70,7 @@ if [ "${FLOWMUX_INSTALL_MOCK:-}" = 1 ]; then
             case "$1" in
                 --prefix) echo /opt/homebrew ;;
                 list) [ "${TEST_MISSING_LIBRARY:-}" != "$3" ] ;;
-                install) : ;;
+                install) [ "${TEST_BREW_FAIL:-0}" != 1 ] ;;
                 *) exit 1 ;;
             esac
             ;;
@@ -122,13 +128,52 @@ export TEST_LOG="$temporary_directory/commands.log"
 PATH="$temporary_directory/bin:$PATH"
 export PATH
 
-TEST_ARCHITECTURE=amd64 sh "$root/install.sh" > "$temporary_directory/output"
+# Give each mock installation a terminal and accept the default Y/n answer.
+cat > "$temporary_directory/confirm.py" <<'PYCONFIRM'
+import errno
+import os
+import pty
+import select
+import sys
+import time
+
+pid, terminal = pty.fork()
+if pid == 0:
+    os.execl("/bin/sh", "sh", sys.argv[1])
+deadline = time.monotonic() + 15
+output = b""
+try:
+    while time.monotonic() < deadline:
+        if not select.select([terminal], [], [], 0.1)[0]:
+            continue
+        try:
+            data = os.read(terminal, 8192)
+        except OSError as error:
+            if error.errno == errno.EIO:
+                break
+            raise
+        if not data:
+            break
+        output += data
+        if output.endswith(b"[Y/n] "):
+            os.write(terminal, b"\n")
+    else:
+        os.kill(pid, 9)
+        raise AssertionError("installer timed out")
+finally:
+    os.close(terminal)
+    _, status = os.waitpid(pid, 0)
+sys.stderr.buffer.write(output)
+sys.exit(os.waitstatus_to_exitcode(status))
+PYCONFIRM
+
+TEST_ARCHITECTURE=amd64 python3 "$temporary_directory/confirm.py" "$root/install.sh" > "$temporary_directory/output"
 grep -F 'curl https://github.com/flowmux-ai/flowmux/releases/download/v9.8.7/flowmux_9.8.7_amd64.deb' "$TEST_LOG" >/dev/null
 grep -F 'apt-get update' "$TEST_LOG" >/dev/null
-grep -F 'apt-get install -y ' "$TEST_LOG" | grep -F '/flowmux_9.8.7_amd64.deb' >/dev/null
+grep -F 'apt-get install ' "$TEST_LOG" | grep -F '/flowmux_9.8.7_amd64.deb' >/dev/null
 
 : > "$TEST_LOG"
-if TEST_ARCHITECTURE=arm64 sh "$root/install.sh" > /dev/null 2> "$temporary_directory/error"; then
+if TEST_ARCHITECTURE=arm64 python3 "$temporary_directory/confirm.py" "$root/install.sh" > /dev/null 2> "$temporary_directory/error"; then
     echo 'error: unsupported architecture was accepted' >&2
     exit 1
 fi
@@ -137,7 +182,7 @@ grep -F "unsupported architecture 'arm64'" "$temporary_directory/error" >/dev/nu
 
 # Ubuntu must also stop before apt on a checksum mismatch.
 : > "$TEST_LOG"
-if TEST_BAD_CHECKSUM=1 sh "$root/install.sh" > /dev/null 2> "$temporary_directory/error"; then
+if TEST_BAD_CHECKSUM=1 python3 "$temporary_directory/confirm.py" "$root/install.sh" > /dev/null 2> "$temporary_directory/error"; then
     echo 'error: Linux checksum mismatch was accepted' >&2
     exit 1
 fi
@@ -148,7 +193,7 @@ export FLOWMUX_MACOS_APP_DIR="$temporary_directory/My Apps"
 export FLOWMUX_MACOS_BIN_DIR="$temporary_directory/My Bin"
 
 : > "$TEST_LOG"
-TEST_MISSING_LIBRARY=vte3 sh "$root/install.sh" > "$temporary_directory/output"
+TEST_MISSING_LIBRARY=vte3 python3 "$temporary_directory/confirm.py" "$root/install.sh" > "$temporary_directory/output"
 grep -F 'flowmux-9.8.7-aarch64-apple-darwin.dmg' "$TEST_LOG" >/dev/null
 grep -F 'brew install vte3' "$TEST_LOG" >/dev/null
 ! grep -F 'apt-get' "$TEST_LOG"
@@ -161,7 +206,7 @@ grep -F 'hdiutil detach ' "$TEST_LOG" >/dev/null
 printf 'previous app' > "$FLOWMUX_MACOS_APP_DIR/Flowmux.app/Contents/MacOS/flowmux"
 for setting in TEST_RUNNING=1 TEST_RUNNING=2 TEST_BAD_CHECKSUM=1 TEST_MISSING_ASSET=1 TEST_BAD_SIGNATURE=1 TEST_FAIL_APP_MOVE=1 TEST_ARCHITECTURE=x86_64; do
     : > "$TEST_LOG"
-    if env "$setting" sh "$root/install.sh" > /dev/null 2> "$temporary_directory/error"; then
+    if env "$setting" python3 "$temporary_directory/confirm.py" "$root/install.sh" > /dev/null 2> "$temporary_directory/error"; then
         echo "error: failure accepted: $setting" >&2
         exit 1
     fi
@@ -175,3 +220,78 @@ for setting in TEST_RUNNING=1 TEST_RUNNING=2 TEST_BAD_CHECKSUM=1 TEST_MISSING_AS
 done
 
 echo 'Linux and macOS installer tests passed'
+
+# Exercise the actual curl-style pipe with a separate controlling terminal.
+python3 - "$root/install.sh" <<'PYTEST'
+import errno
+import os
+import pty
+import select
+import shlex
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+installer = sys.argv[1]
+log = Path(os.environ["TEST_LOG"])
+app = Path(os.environ["FLOWMUX_MACOS_APP_DIR"]) / "Flowmux.app/Contents/MacOS/flowmux"
+for system in ["Linux", "Darwin"]:
+    os.environ.update(TEST_OS=system, TEST_ARCHITECTURE="amd64" if system == "Linux" else "arm64",
+                      TEST_MISSING_LIBRARY="vte3")
+    for answer in [b"n\n", b"\n", b"y\n"]:
+        log.write_text("")
+        app.write_text("previous app")
+        pid, terminal = pty.fork()
+        if pid == 0:
+            os.execl("/bin/sh", "sh", "-c", "cat " + shlex.quote(installer) + " | sh")
+        output = b""
+        answered = False
+        deadline = time.monotonic() + 15
+        try:
+            while time.monotonic() < deadline:
+                if not select.select([terminal], [], [], 0.1)[0]:
+                    continue
+                try:
+                    data = os.read(terminal, 8192)
+                except OSError as error:
+                    if error.errno == errno.EIO:
+                        break
+                    raise
+                if not data:
+                    break
+                output += data
+                if b"[Y/n]" in output and not answered:
+                    os.write(terminal, answer)
+                    answered = True
+            else:
+                os.kill(pid, 9)
+                raise AssertionError("confirmation timed out: " + repr(output))
+        finally:
+            os.close(terminal)
+            _, status = os.waitpid(pid, 0)
+        assert answered, output
+        calls = log.read_text()
+        install_command = "apt-get install" if system == "Linux" else "brew install vte3"
+        if answer != b"n\n":
+            assert os.waitstatus_to_exitcode(status) == 0, output
+            assert install_command in calls, calls
+        else:
+            assert os.waitstatus_to_exitcode(status) != 0, output
+            assert install_command not in calls, calls
+            assert app.read_text() == "previous app"
+    log.write_text("")
+    result = subprocess.run(["sh", installer], stdin=subprocess.DEVNULL, capture_output=True,
+                            start_new_session=True, timeout=15)
+    assert result.returncode != 0 and b"requires a terminal" in result.stderr, result.stderr
+    assert "brew install" not in log.read_text() and "apt-get" not in log.read_text()
+
+log.write_text("")
+app.write_text("previous app")
+result = subprocess.run([sys.executable, str(Path(os.environ["TEST_LOG"]).parent / "confirm.py"), installer], env=dict(os.environ, TEST_BREW_FAIL="1"),
+                        capture_output=True, timeout=15)
+assert result.returncode != 0
+assert app.read_text() == "previous app"
+assert "hdiutil detach" in log.read_text()
+print("Piped installer consent, refusal, unattended, and dependency failure tests passed")
+PYTEST

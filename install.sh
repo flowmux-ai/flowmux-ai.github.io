@@ -8,10 +8,27 @@ die() {
     exit 1
 }
 
+[ "$#" -eq 0 ] || die "usage: sh install.sh"
+
+confirm() {
+    # stdin contains the script when invoked with curl | sh.
+    if ! ( : </dev/tty ) 2>/dev/null; then
+        die "confirmation requires a terminal; rerun the installer in a terminal"
+    fi
+    printf '%s [Y/n] ' "$1" >/dev/tty
+    read -r answer </dev/tty || die "could not read confirmation"
+    case "$answer" in ""|y|Y|yes|YES) ;; *) die "installation cancelled" ;; esac
+}
+
+if [ -x /opt/homebrew/bin/brew ]; then
+    PATH="${PATH}:/opt/homebrew/bin:/opt/homebrew/sbin"
+    export PATH
+fi
+
 system=$(uname -s)
 case "$system" in
     Linux) required_commands="curl sha256sum mktemp apt-get dpkg id" ;;
-    Darwin) required_commands="curl shasum mktemp hdiutil codesign ditto brew ps awk" ;;
+    Darwin) required_commands="curl shasum mktemp hdiutil codesign ditto ps awk" ;;
     *) die "unsupported OS '$system' (Linux or macOS is required)" ;;
 esac
 for command in $required_commands; do
@@ -36,7 +53,6 @@ check_app_stopped() {
 if [ "$system" = Darwin ]; then
     architecture=$(uname -m)
     [ "$architecture" = arm64 ] || die "unsupported architecture '$architecture' (Apple Silicon arm64 is required)"
-    [ "$(brew --prefix)" = /opt/homebrew ] || die "macOS artifacts require Homebrew at /opt/homebrew"
     check_app_stopped
     for name in flowmux flowmuxctl; do
         [ ! -d "$bin_dir/$name" ] || die "refusing to replace directory $bin_dir/$name"
@@ -107,11 +123,25 @@ if [ "$system" = Darwin ]; then
     hdiutil attach -readonly -nobrowse -mountpoint "$temporary_directory/mount" "$temporary_directory/$package"
     mountpoint="$temporary_directory/mount"
     codesign --verify --deep --strict "$mountpoint/Flowmux.app"
+    if ! command -v brew >/dev/null 2>&1; then
+        confirm "Homebrew is required. Install it and Apple's command-line tools if needed?"
+        curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh -o "$temporary_directory/homebrew.sh"
+        /bin/bash "$temporary_directory/homebrew.sh" </dev/tty
+        PATH="${PATH}:/opt/homebrew/bin:/opt/homebrew/sbin"
+        export PATH
+    fi
+    [ "$(brew --prefix)" = /opt/homebrew ] || die "macOS artifacts require Homebrew at /opt/homebrew"
+    missing_formulas=
     for formula in gtk4 libadwaita vte3; do
         if ! brew list --versions "$formula" >/dev/null 2>&1; then
-            brew install "$formula"
+            missing_formulas="$missing_formulas $formula"
         fi
     done
+    if [ -n "$missing_formulas" ]; then
+        confirm "Install required Homebrew libraries:$missing_formulas?"
+        # Formula names come only from the fixed list above.
+        brew install $missing_formulas
+    fi
     mkdir -p "$app_dir" "$bin_dir"
     install_stage=$(mktemp -d "$app_dir/.flowmux-install.XXXXXX")
     ditto "$mountpoint/Flowmux.app" "$install_stage/Flowmux.app"
@@ -152,8 +182,11 @@ install_as_root() {
     fi
 }
 
+if ! ( : </dev/tty ) 2>/dev/null; then
+    die "confirmation requires a terminal; rerun the installer in a terminal"
+fi
 echo "==> Installing flowmux ${version}"
 install_as_root apt-get update
-install_as_root apt-get install -y "${temporary_directory}/${package}"
+install_as_root apt-get install "${temporary_directory}/${package}" </dev/tty
 
 echo "==> flowmux ${version} installed"
