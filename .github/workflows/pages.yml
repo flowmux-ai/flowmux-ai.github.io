@@ -39,6 +39,7 @@ jobs:
         run: |
           mkdir _site
           cp index.html install.sh deferred-macos-app-swap.sh styles.css robots.txt sitemap.xml google8ef6ae6d5003d1da.html _site/
+          cp check-thorvg.py install-thorvg-macos.sh install-thorvg.sh _site/
           cp -R assets _site/
           gh api 'repos/flowmux-ai/flowmux/releases?per_page=100' --paginate --jq '.[] | .assets[] | @json' > "$RUNNER_TEMP/flowmux-assets.jsonl"
           python3 update-install-count.py "$RUNNER_TEMP/flowmux-assets.jsonl" _site/index.html

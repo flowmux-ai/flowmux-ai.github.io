@@ -38,6 +38,12 @@ if [ "${FLOWMUX_INSTALL_MOCK:-}" = 1 ]; then
                 https://flowmux.org/deferred-macos-app-swap.sh)
                     cp "$TEST_SWAP_HELPER" "$output"
                     ;;
+                https://flowmux.org/install-thorvg-macos.sh)
+                    printf '%s\n' 'echo thorvg-check >> "$TEST_LOG"' '[ "${TEST_THORVG_FAIL:-0}" != 1 ]' > "$output"
+                    ;;
+                https://flowmux.org/check-thorvg.py|https://flowmux.org/install-thorvg.sh)
+                    : > "$output"
+                    ;;
                 *.sha256)
                     package_path=${output%.sha256}
                     package=${package_path##*/}
@@ -179,6 +185,7 @@ PYCONFIRM
 TEST_ARCHITECTURE=amd64 python3 "$temporary_directory/confirm.py" "$root/install.sh" > "$temporary_directory/output"
 grep -F 'curl https://github.com/flowmux-ai/flowmux/releases/download/v9.8.7/flowmux_9.8.7_amd64.deb' "$TEST_LOG" >/dev/null
 grep -F 'apt-get update' "$TEST_LOG" >/dev/null
+! grep -F 'thorvg' "$TEST_LOG"
 grep -F 'apt-get install ' "$TEST_LOG" | grep -F '/flowmux_9.8.7_amd64.deb' >/dev/null
 
 : > "$TEST_LOG"
@@ -205,6 +212,7 @@ export FLOWMUX_MACOS_BIN_DIR="$temporary_directory/My Bin"
 TEST_MISSING_LIBRARY=vte3 python3 "$temporary_directory/confirm.py" "$root/install.sh" > "$temporary_directory/output"
 grep -F 'flowmux-9.8.7-aarch64-apple-darwin.dmg' "$TEST_LOG" >/dev/null
 grep -F 'brew install vte3' "$TEST_LOG" >/dev/null
+grep -Fx 'thorvg-check' "$TEST_LOG" >/dev/null
 ! grep -F 'apt-get' "$TEST_LOG"
 grep -F 'hdiutil detach ' "$TEST_LOG" >/dev/null
 [ "$(cat "$FLOWMUX_MACOS_APP_DIR/Flowmux.app/Contents/MacOS/flowmux")" = 'new app' ]
@@ -213,7 +221,7 @@ grep -F 'hdiutil detach ' "$TEST_LOG" >/dev/null
 
 # Every failure must preserve an existing installation.
 printf 'previous app' > "$FLOWMUX_MACOS_APP_DIR/Flowmux.app/Contents/MacOS/flowmux"
-for setting in TEST_BAD_CHECKSUM=1 TEST_MISSING_ASSET=1 TEST_BAD_SIGNATURE=1 TEST_FAIL_APP_MOVE=1 TEST_ARCHITECTURE=x86_64; do
+for setting in TEST_THORVG_FAIL=1 TEST_BAD_CHECKSUM=1 TEST_MISSING_ASSET=1 TEST_BAD_SIGNATURE=1 TEST_FAIL_APP_MOVE=1 TEST_ARCHITECTURE=x86_64; do
     : > "$TEST_LOG"
     if env "$setting" python3 "$temporary_directory/confirm.py" "$root/install.sh" > /dev/null 2> "$temporary_directory/error"; then
         echo "error: failure accepted: $setting" >&2

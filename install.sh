@@ -139,6 +139,10 @@ if [ "$system" = Darwin ]; then
         # Formula names come only from the fixed list above.
         brew install $missing_formulas
     fi
+    for helper in check-thorvg.py install-thorvg-macos.sh install-thorvg.sh; do
+        curl -fsSL "https://flowmux.org/$helper" -o "$temporary_directory/$helper"
+    done
+    /bin/bash "$temporary_directory/install-thorvg-macos.sh"
     mkdir -p "$app_dir" "$bin_dir"
     install_stage=$(mktemp -d "$app_dir/.flowmux-install.XXXXXX")
     ditto "$mountpoint/Flowmux.app" "$install_stage/Flowmux.app"
