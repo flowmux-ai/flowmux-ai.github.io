@@ -28,7 +28,7 @@ fi
 system=$(uname -s)
 case "$system" in
     Linux) required_commands="curl sha256sum mktemp apt-get dpkg id" ;;
-    Darwin) required_commands="curl shasum mktemp hdiutil codesign ditto ps awk" ;;
+    Darwin) required_commands="curl shasum mktemp hdiutil codesign ditto ps awk launchctl" ;;
     *) die "unsupported OS '$system' (Linux or macOS is required)" ;;
 esac
 for command in $required_commands; do
@@ -38,22 +38,19 @@ done
 app_dir=${FLOWMUX_MACOS_APP_DIR:-$HOME/Applications}
 bin_dir=${FLOWMUX_MACOS_BIN_DIR:-$HOME/.local/bin}
 app="$app_dir/Flowmux.app"
-check_app_stopped() {
-    processes=$(ps -ww -axo comm=) || die "could not check running apps"
-    running=$(printf '%s\n' "$processes" | while IFS= read -r executable; do
+running_app_pids() {
+    processes=$(ps -ww -axo pid=,comm=) || die "could not check running apps"
+    printf '%s\n' "$processes" | while read -r pid executable; do
         if [ "$executable" = "$app/Contents/MacOS/flowmux" ] \
             || [ "$executable" -ef "$app/Contents/MacOS/flowmux" ]; then
-            echo running
-            break
+            printf '%s\n' "$pid"
         fi
-    done)
-    [ -z "$running" ] || die "quit Flowmux at $app before installing; no running session was stopped"
+    done
 }
 
 if [ "$system" = Darwin ]; then
     architecture=$(uname -m)
     [ "$architecture" = arm64 ] || die "unsupported architecture '$architecture' (Apple Silicon arm64 is required)"
-    check_app_stopped
     for name in flowmux flowmuxctl; do
         [ ! -d "$bin_dir/$name" ] || die "refusing to replace directory $bin_dir/$name"
     done
@@ -146,21 +143,40 @@ if [ "$system" = Darwin ]; then
     install_stage=$(mktemp -d "$app_dir/.flowmux-install.XXXXXX")
     ditto "$mountpoint/Flowmux.app" "$install_stage/Flowmux.app"
     codesign --verify --deep --strict "$install_stage/Flowmux.app"
-    check_app_stopped
-    if [ -e "$app" ]; then
-        mv "$app" "$install_stage/previous.app"
-    fi
-    if ! mv "$install_stage/Flowmux.app" "$app"; then
-        if [ -e "$install_stage/previous.app" ]; then
-            mv "$install_stage/previous.app" "$app" || die "restore failed; previous app retained at $install_stage/previous.app"
+    running_pids=$(running_app_pids)
+    if [ -n "$running_pids" ]; then
+        first_pid=$(printf '%s\n' "$running_pids" | head -n 1)
+        pending="$app_dir/.Flowmux.app.pending.$first_pid"
+        backup="$app_dir/.Flowmux.app.previous.$first_pid"
+        update_dir="$HOME/.cache/flowmux"
+        helper="$update_dir/deferred-macos-app-swap.sh"
+        label="com.flowmux.update.$first_pid"
+        mkdir -p "$update_dir"
+        curl -fsSL https://flowmux.org/deferred-macos-app-swap.sh -o "$temporary_directory/swap.sh"
+        install -m755 "$temporary_directory/swap.sh" "$helper"
+        launchctl remove "$label" >/dev/null 2>&1 || true
+        rm -rf "$pending"
+        mv "$install_stage/Flowmux.app" "$pending"
+        launchctl submit -l "$label" -o "$update_dir/update.log" -e "$update_dir/update.log" \
+            -- /bin/sh "$helper" "$running_pids" "$pending" "$app" "$backup" \
+            || die "could not schedule update; existing app unchanged, new app retained at $pending"
+        echo "==> Flowmux ${version} is ready. Quit Flowmux when convenient to finish updating."
+    else
+        if [ -e "$app" ]; then
+            mv "$app" "$install_stage/previous.app"
         fi
-        die "could not install $app"
+        if ! mv "$install_stage/Flowmux.app" "$app"; then
+            if [ -e "$install_stage/previous.app" ]; then
+                mv "$install_stage/previous.app" "$app" || die "restore failed; previous app retained at $install_stage/previous.app"
+            fi
+            die "could not install $app"
+        fi
+        rm -rf "$install_stage/previous.app"
+        echo "==> Flowmux ${version} installed at $app"
     fi
     for name in flowmux flowmuxctl; do
         ln -sfn "$app/Contents/MacOS/$name" "$bin_dir/$name"
     done
-    rm -rf "$install_stage/previous.app"
-    echo "==> Flowmux ${version} installed at $app"
     echo "==> CLI links: $bin_dir/flowmux and $bin_dir/flowmuxctl (add $bin_dir to PATH if needed)"
     echo "==> Preview: Homebrew runtime libraries required; Developer ID signing and notarization are not available yet."
     exit 0

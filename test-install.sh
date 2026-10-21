@@ -35,6 +35,9 @@ if [ "${FLOWMUX_INSTALL_MOCK:-}" = 1 ]; then
                 */releases/latest)
                     printf '%s' 'https://github.com/flowmux-ai/flowmux/releases/tag/v9.8.7'
                     ;;
+                https://flowmux.org/deferred-macos-app-swap.sh)
+                    cp "$TEST_SWAP_HELPER" "$output"
+                    ;;
                 *.sha256)
                     package_path=${output%.sha256}
                     package=${package_path##*/}
@@ -76,10 +79,14 @@ if [ "${FLOWMUX_INSTALL_MOCK:-}" = 1 ]; then
             ;;
         ps)
             if [ "${TEST_RUNNING:-0}" = 1 ]; then
-                printf '%s/Flowmux.app/Contents/MacOS/flowmux\n' "$FLOWMUX_MACOS_APP_DIR"
+                printf '424242 %s/Flowmux.app/Contents/MacOS/flowmux\n' "$FLOWMUX_MACOS_APP_DIR"
             elif [ "${TEST_RUNNING:-0}" = 2 ]; then
-                printf '%s/flowmux\n' "$FLOWMUX_MACOS_BIN_DIR"
+                printf '424242 %s/flowmux\n' "$FLOWMUX_MACOS_BIN_DIR"
             fi
+            ;;
+        launchctl)
+            printf 'launchctl %s\n' "$*" >> "$TEST_LOG"
+            [ "${TEST_LAUNCH_FAIL:-0}" != 1 ]
             ;;
         codesign)
             printf 'codesign %s\n' "$*" >> "$TEST_LOG"
@@ -119,10 +126,12 @@ temporary_directory=$(mktemp -d)
 trap 'rm -rf "$temporary_directory"' 0
 mkdir "$temporary_directory/bin"
 
-for command in uname dpkg curl apt-get sudo brew ps codesign hdiutil ditto mv; do
+for command in uname dpkg curl apt-get sudo brew ps codesign hdiutil ditto mv launchctl; do
     ln -s "$root/test-install.sh" "$temporary_directory/bin/$command"
 done
 
+export HOME="$temporary_directory/home"
+export TEST_SWAP_HELPER="$root/deferred-macos-app-swap.sh"
 export FLOWMUX_INSTALL_MOCK=1
 export TEST_LOG="$temporary_directory/commands.log"
 PATH="$temporary_directory/bin:$PATH"
@@ -204,7 +213,7 @@ grep -F 'hdiutil detach ' "$TEST_LOG" >/dev/null
 
 # Every failure must preserve an existing installation.
 printf 'previous app' > "$FLOWMUX_MACOS_APP_DIR/Flowmux.app/Contents/MacOS/flowmux"
-for setting in TEST_RUNNING=1 TEST_RUNNING=2 TEST_BAD_CHECKSUM=1 TEST_MISSING_ASSET=1 TEST_BAD_SIGNATURE=1 TEST_FAIL_APP_MOVE=1 TEST_ARCHITECTURE=x86_64; do
+for setting in TEST_BAD_CHECKSUM=1 TEST_MISSING_ASSET=1 TEST_BAD_SIGNATURE=1 TEST_FAIL_APP_MOVE=1 TEST_ARCHITECTURE=x86_64; do
     : > "$TEST_LOG"
     if env "$setting" python3 "$temporary_directory/confirm.py" "$root/install.sh" > /dev/null 2> "$temporary_directory/error"; then
         echo "error: failure accepted: $setting" >&2
@@ -212,12 +221,30 @@ for setting in TEST_RUNNING=1 TEST_RUNNING=2 TEST_BAD_CHECKSUM=1 TEST_MISSING_AS
     fi
     [ "$(cat "$FLOWMUX_MACOS_APP_DIR/Flowmux.app/Contents/MacOS/flowmux")" = 'previous app' ]
     case "$setting" in
-        TEST_RUNNING=*|TEST_ARCHITECTURE=*) ! grep -F 'curl ' "$TEST_LOG" ;;
+        TEST_ARCHITECTURE=*) ! grep -F 'curl ' "$TEST_LOG" ;;
         TEST_BAD_CHECKSUM=*|TEST_MISSING_ASSET=*) ! grep -F 'hdiutil attach' "$TEST_LOG" ;;
         TEST_BAD_SIGNATURE=*) ! grep -F 'brew install' "$TEST_LOG" ;;
     esac
     echo "preservation test passed: $setting"
 done
+
+# Running apps keep their current bundle while a verified update is staged.
+for running in 1 2; do
+    : > "$TEST_LOG"
+    TEST_RUNNING=$running python3 "$temporary_directory/confirm.py" "$root/install.sh" > "$temporary_directory/output" 2>&1
+    [ "$(cat "$FLOWMUX_MACOS_APP_DIR/Flowmux.app/Contents/MacOS/flowmux")" = 'previous app' ]
+    [ "$(cat "$FLOWMUX_MACOS_APP_DIR/.Flowmux.app.pending.424242/Contents/MacOS/flowmux")" = 'new app' ]
+    grep -F 'launchctl submit' "$TEST_LOG" >/dev/null
+    grep -F 'Quit Flowmux when convenient' "$temporary_directory/output" >/dev/null
+    grep -F 'hdiutil detach' "$TEST_LOG" >/dev/null
+    rm -rf "$FLOWMUX_MACOS_APP_DIR/.Flowmux.app.pending.424242"
+done
+if TEST_RUNNING=1 TEST_LAUNCH_FAIL=1 python3 "$temporary_directory/confirm.py" "$root/install.sh" > /dev/null 2> "$temporary_directory/error"; then
+    echo 'error: failed update scheduling was accepted' >&2
+    exit 1
+fi
+[ "$(cat "$FLOWMUX_MACOS_APP_DIR/Flowmux.app/Contents/MacOS/flowmux")" = 'previous app' ]
+grep -F 'could not schedule update' "$temporary_directory/error" >/dev/null
 
 echo 'Linux and macOS installer tests passed'
 
@@ -295,3 +322,56 @@ assert app.read_text() == "previous app"
 assert "hdiutil detach" in log.read_text()
 print("Piped installer consent, refusal, unattended, and dependency failure tests passed")
 PYTEST
+
+# The real helper must wait for every host and restore the app if a move fails.
+python3 - "$root/deferred-macos-app-swap.sh" <<'PYSWAP'
+import os
+from pathlib import Path
+import shutil
+import subprocess
+import sys
+import tempfile
+import time
+
+helper = sys.argv[1]
+with tempfile.TemporaryDirectory(prefix="flowmux-swap-") as directory:
+    root = Path(directory)
+    app = root / "Flowmux.app"
+    pending = root / ".Flowmux.app.pending.123"
+    backup = root / ".Flowmux.app.previous.123"
+    app.mkdir()
+    pending.mkdir()
+    (app / "version").write_text("old")
+    (pending / "version").write_text("new")
+    processes = [subprocess.Popen(["/bin/sleep", "30"]) for _ in range(2)]
+    swap = subprocess.Popen(["sh", helper, "\n".join(str(p.pid) for p in processes),
+                             str(pending), str(app), str(backup)])
+    try:
+        time.sleep(0.3)
+        assert swap.poll() is None and (app / "version").read_text() == "old"
+        processes[0].terminate()
+        processes[0].wait(timeout=5)
+        time.sleep(0.3)
+        assert swap.poll() is None and (app / "version").read_text() == "old"
+        processes[1].terminate()
+        processes[1].wait(timeout=5)
+        assert swap.wait(timeout=5) == 0
+        assert (app / "version").read_text() == "new" and not backup.exists()
+    finally:
+        for process in processes + [swap]:
+            if process.poll() is None:
+                process.terminate()
+            process.wait(timeout=5)
+    pending.mkdir()
+    (pending / "version").write_text("failed update")
+    stubs = root / "bin"
+    stubs.mkdir()
+    (stubs / "mv").write_text('#!/bin/sh\ncase "$1" in *.pending.123) exit 1 ;; esac\nexec /bin/mv "$@"\n')
+    (stubs / "mv").chmod(0o755)
+    result = subprocess.run(["sh", helper, str(processes[0].pid), str(pending), str(app), str(backup)],
+                            env=dict(os.environ, PATH=str(stubs) + ":" + os.environ["PATH"]),
+                            capture_output=True, timeout=5)
+    assert b"could not install" in result.stderr
+    assert (app / "version").read_text() == "new" and pending.exists()
+print("DEFERRED_APP_SWAP_OK: waits for all hosts and restores failed replacement")
+PYSWAP
